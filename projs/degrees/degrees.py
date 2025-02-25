@@ -94,7 +94,7 @@ def shortest_path(source, target):
 
     # source and target are two IDs.
     # state - id
-    # action - movie id that connects to current person
+    # action - (movie_id, former_person_id) pair
     frontier = QueueFrontier() # I choose BFS to find the shortest way
     explored_people = set()
     source_node = Node(source, None, None) # source node without parent and action
@@ -112,20 +112,17 @@ def shortest_path(source, target):
         explored_people.add(person_id)
 
         # put all valid actions to frontier
-        for movie_id in people[person_id]["movies"]:
-            for star_id in movies[movie_id]["stars"]:
-                if star_id in explored_people or frontier.contains_state(star_id):
-                    continue
-                frontier.add(Node(star_id, current_node, movie_id))
+        for neighbor in neighbors_for_person(person_id):
+            star_id = neighbor[1]
+            if star_id not in explored_people and not frontier.contains_state(star_id):
+                frontier.add(Node(star_id, current_node, neighbor))
                 
     return None # If there's no path, return None
-
-
 
 def connection_list(node, source):
     clist = []
     while node.state != source:
-        clist.append((node.action, node.state))
+        clist.append(node.action)
         node = node.parent
     return list(reversed(clist))
 
