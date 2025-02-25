@@ -106,14 +106,14 @@ def shortest_path(source, target):
         
         # terminal check
         if person_id == target:
-            return connection_list(current_node)
+            return connection_list(current_node, source)
         
         # add current state to explored set
         explored_people.add(person_id)
 
         # put all valid actions to frontier
         for movie_id in people[person_id]["movies"]:
-            for star_id in movies[movie_id]["starts"]:
+            for star_id in movies[movie_id]["stars"]:
                 if star_id in explored_people or frontier.contains_state(star_id):
                     continue
                 frontier.add(Node(star_id, current_node, movie_id))
@@ -122,12 +122,12 @@ def shortest_path(source, target):
 
 
 
-def connection_list(node):
+def connection_list(node, source):
     clist = []
-    while node is not None:
+    while node.state != source:
         clist.append((node.action, node.state))
         node = node.parent
-    return reversed(clist)
+    return list(reversed(clist))
 
 def person_id_for_name(name):
     """
