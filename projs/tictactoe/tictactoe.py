@@ -10,6 +10,7 @@ from tkinter import NO
 X = "X"
 O = "O"
 EMPTY = None
+INF = 100
 
 
 def initial_state():
@@ -125,4 +126,37 @@ def minimax(board):
     """
     Returns the optimal action for the current player on the board.
     """
-    raise NotImplementedError
+    
+    def value(board, evaluator, f_next):
+        if terminal(board):
+            return utility(board)
+        available_actions = actions(board)
+        return evaluator([f_next(result(board, action)) for action in available_actions])
+            
+    def max_value(board):
+        return value(board, max, min_value)
+    
+    def min_value(board):
+        return value(board, min, max_value)
+    
+    if terminal(board):
+        return None
+    
+    current_player = player(board)
+    best_action = None
+    if current_player == X:
+        v_max = -INF
+        for action in actions(board):
+            v = min_value(result(board, action))
+            if v > v_max:
+                v_max = v
+                best_action = action
+    else:
+        v_min = INF
+        for action in actions(board):
+            v = max_value(result(board, action))
+            if v < v_min:
+                v_min = v
+                best_action = action
+    
+    return best_action
