@@ -121,42 +121,58 @@ def utility(board):
     else:
         return 0
 
-
 def minimax(board):
     """
     Returns the optimal action for the current player on the board.
     """
-    
-    def value(board, evaluator, f_next):
+
+    def max_value(board, alpha, beta):
         if terminal(board):
             return utility(board)
-        available_actions = actions(board)
-        return evaluator([f_next(result(board, action)) for action in available_actions])
-            
-    def max_value(board):
-        return value(board, max, min_value)
-    
-    def min_value(board):
-        return value(board, min, max_value)
-    
+
+        best = -INF
+        for action in actions(board):
+            best = max(best, min_value(result(board, action), alpha, beta))
+            if best >= beta:
+                return best
+            alpha = max(alpha, best)
+        return best
+
+    def min_value(board, alpha, beta):
+        if terminal(board):
+            return utility(board)
+
+        best = INF
+        for action in actions(board):
+            best = min(best, max_value(result(board, action), alpha, beta))
+            if best <= alpha:
+                return best
+            beta = min(beta, best)
+        return best
+
     if terminal(board):
         return None
-    
+
     current_player = player(board)
+    alpha = -INF
+    beta = INF
+
     best_action = None
     if current_player == X:
-        v_max = -INF
+        best_value = -INF
         for action in actions(board):
-            v = min_value(result(board, action))
-            if v > v_max:
-                v_max = v
+            value = min_value(result(board, action), alpha, beta)
+            if value > best_value:
+                best_value = value
                 best_action = action
-    else:
-        v_min = INF
+            alpha = max(alpha, best_value) # update alpha
+    else:  # current_player == O
+        best_value = INF
         for action in actions(board):
-            v = max_value(result(board, action))
-            if v < v_min:
-                v_min = v
+            value = max_value(result(board, action), alpha, beta)
+            if value < best_value:
+                best_value = value
                 best_action = action
-    
+            beta = min(beta, best_value)  # update beta
+
     return best_action
