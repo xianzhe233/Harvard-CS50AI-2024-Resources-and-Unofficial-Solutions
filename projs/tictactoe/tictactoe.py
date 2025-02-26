@@ -65,6 +65,7 @@ def result(board, action):
     
     return new_board
 
+
 def winner(board):
     """
     Returns the winner of the game, if there is one.
@@ -109,6 +110,7 @@ def terminal(board):
 
     return not (exist_empty() and winner(board) == None)
 
+
 def utility(board):
     """
     Returns 1 if X has won the game, -1 if O has won, 0 otherwise.
@@ -120,6 +122,7 @@ def utility(board):
         return -1
     else:
         return 0
+    
 
 def minimax(board):
     """
@@ -165,14 +168,14 @@ def minimax(board):
             if value > best_value:
                 best_value = value
                 best_action = action
-            alpha = max(alpha, best_value) # update alpha
-    else:  # current_player == O
+            alpha = max(alpha, best_value)
+    else:
         best_value = INF
         for action in actions(board):
             value = max_value(result(board, action), alpha, beta)
             if value < best_value:
                 best_value = value
                 best_action = action
-            beta = min(beta, best_value)  # update beta
+            beta = min(beta, best_value)
 
     return best_action
