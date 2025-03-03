@@ -40,10 +40,7 @@ def crawl(directory):
 
     # Only include links to other pages in the corpus
     for filename in pages:
-        pages[filename] = set(
-            link for link in pages[filename]
-            if link in pages
-        )
+        pages[filename] = set(link for link in pages[filename] if link in pages)
 
     return pages
 
@@ -57,7 +54,29 @@ def transition_model(corpus, page, damping_factor):
     linked to by `page`. With probability `1 - damping_factor`, choose
     a link at random chosen from all pages in the corpus.
     """
-    raise NotImplementedError
+    new_pages = corpus[page]
+    pages_length = len(new_pages)
+    all_pages = corpus.keys()
+    all_pages_length = len(all_pages)
+    random_prob = (1 - damping_factor) / all_pages_length
+
+    if pages_length > 0:
+        # for every new page,
+        # P(p_i) = D * 1 / pages_length + (1 - D) * 1 / all_pages_length
+        #         { pick from new ones }  {       randomly choose       }
+        surf_prob = (damping_factor / pages_length)
+        surf_distribution = {new_page: surf_prob for new_page in new_pages}
+        # each of other pages has a randomly choosing probability
+        for p in all_pages:
+            if p in new_pages:
+                surf_distribution[p] += random_prob
+            else:
+                surf_distribution[p] = random_prob
+    else:
+        # if there's no links, just use uniform distribution
+        surf_distribution = {new_page: random_prob for new_page in all_pages}
+
+    return surf_distribution
 
 
 def sample_pagerank(corpus, damping_factor, n):
@@ -69,10 +88,22 @@ def sample_pagerank(corpus, damping_factor, n):
     their estimated PageRank value (a value between 0 and 1). All
     PageRank values should sum to 1.
     """
-    raise NotImplementedError
+    page_values = {page: 0 for page in corpus.keys()}
+    page = random.choice(page_values.keys())
+
+    # randomly picking a starting page used 1 sample
+    for _ in range(n - 1):
+        page_values[page] += 1
+        transition_dict = transition_model(corpus, page, damping_factor)
+        pages = transition_dict.keys()
+        distribution = transition_dict.values()
+        page = random.choices(pages, distribution, k=1)[0]
+
+    sample_dict = {p: v / n for p, v in page_values}
+    return sample_dict
 
 
-def iterate_pagerank(corpus, damping_factor):
+def iterate_pagerank(corpus, damping_factor, threshold=0.001):
     """
     Return PageRank values for each page by iteratively updating
     PageRank values until convergence.
@@ -81,7 +112,37 @@ def iterate_pagerank(corpus, damping_factor):
     their estimated PageRank value (a value between 0 and 1). All
     PageRank values should sum to 1.
     """
-    raise NotImplementedError
+
+    # Returns a set of all pages that link to page.
+    def pages_link_to(page):
+        return set(p for p, pages in corpus.items() if p in pages)
+
+    # Updates PR(p), returns changed value.
+    def pagerank_update(page):
+        new_pagerank = (1 - damping_factor) / n
+        for i in pages_link_to(page):
+            numlinks = len(corpus[i])
+            numlinks = len(corpus) if numlinks == 0 else numlinks
+            new_pagerank += damping_factor * page_ranks[i] / numlinks
+        diff = abs(new_pagerank - page_ranks[page])
+        pagerank_updates.update({page: new_pagerank})
+        return diff
+
+    # initialize page_rank of all pages
+    n = len(corpus)
+    page_ranks = {page: 1 / n for page in corpus.keys()}
+    pagerank_updates = {}
+
+    while True:
+        max_diff = 0
+        for p in corpus.keys():
+            max_diff = max(pagerank_update(p), max_diff)
+        if max_diff <= threshold:
+            break
+        else:
+            page_ranks.update(pagerank_updates)
+
+    return page_ranks
 
 
 if __name__ == "__main__":

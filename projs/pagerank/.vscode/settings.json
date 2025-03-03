@@ -1,5 +1,7 @@
 {
 	"cSpell.words": [
+		"numlinks",
 		"pagerank"
-	]
+	],
+	"python.analysis.typeCheckingMode": "off"
 }
