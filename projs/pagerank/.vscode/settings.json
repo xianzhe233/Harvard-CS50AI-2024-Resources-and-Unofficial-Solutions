@@ -3,5 +3,5 @@
 		"numlinks",
 		"pagerank"
 	],
-	"python.analysis.typeCheckingMode": "off"
+	"python.analysis.typeCheckingMode": "basic"
 }
