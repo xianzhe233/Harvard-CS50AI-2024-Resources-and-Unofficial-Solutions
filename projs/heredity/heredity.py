@@ -143,52 +143,63 @@ def joint_probability(people, one_gene, two_genes, have_trait):
     # Calculates person's genes distribution.
     def calc_genes(person):
 
-        # Returns gene_factors' distribution with given gene pattern.
-        def gene_factor(genes):
+        # Returns person's gene_factors' distribution.
+        def gene_factor(person):
             factor = {0: 0, 1: 0}
-            for num, prob in genes.items():
-                factor[0] += (1 - num / 2) * prob * (
-                    1 - PROBS['mutation']) + num / 2 * prob * PROBS['mutation']
-                factor[1] += num / 2 * prob * (1 - PROBS['mutation']) + (
-                    1 - num / 2) * prob * PROBS['mutation']
+            # person's copies of target gene is given
+            if person in one_gene:
+                num = 1
+            elif person in two_genes:
+                num = 2
+            else:
+                num = 0
+
+            # every copy has a 50% chance to give out itself
+            # special factor from mutation should be added
+            factor[0] += (1 - num / 2) * (
+                1 - PROBS['mutation']) + num / 2 * PROBS['mutation']
+            factor[1] += num / 2 * (1 - PROBS['mutation']) + (
+                1 - num / 2) * PROBS['mutation']
             return factor
 
         if not people[person]['mother']:
             return PROBS["gene"]  # if no parents, just use general distribution
         else:
             genes = {0: 0, 1: 0, 2: 0}
-            f_gene = calc_genes(people[person]['father'])
-            m_gene = calc_genes(people[person]['mother'])
-            f_factor, m_factor = gene_factor(f_gene), gene_factor(m_gene)
+            father, mother = people[person]['father'], people[person]['mother']
+            # if there are parents, recursively call calc_genes()
+            f_gene = calc_genes(father)
+            m_gene = calc_genes(mother)
+            f_factor, m_factor = gene_factor(father), gene_factor(mother)
+            # calculate different factor combinations
             for num1, prob1 in f_factor.items():
                 for num2, prob2 in m_factor.items():
                     genes[num1 + num2] += prob1 * prob2
             return genes
 
-    # Calculates traits' distribution with given gene distribution.
-    def calc_traits(genes):
-        traits = {True: 0, False: 0}
-        for copy, prob in genes.items():
-            traits[True] += prob * PROBS['trait'][copy]
-        return traits
-
-    joint = {person: {"gene": {}, "trait": {}} for person in people}
+    # create dict of genes of each person
+    genes_dict = {}
     for person in people.keys():
         genes = calc_genes(person)
-        traits = calc_traits(genes)
+        genes_dict[person] = {"gene": genes}
+
+    joint_prob = 1.0
+    for person in people:
+        # number of copies of gene
+        num_genes = 0
         if person in one_gene:
-            joint[person]['gene'].update({1: genes[1]})
+            num_genes = 1
         elif person in two_genes:
-            joint[person]['gene'].update({2: genes[2]})
-        else:
-            joint[person]['gene'].update({0: genes[0]})
+            num_genes = 2
 
-        if person in have_trait:
-            joint[person]['trait'].update({True: traits[True]})
-        else:
-            joint[person]['trait'].update({False: traits[False]})
+        # whether or not have trait
+        has_trait = person in have_trait
 
-    return joint
+        gene_prob = genes_dict[person]["gene"][num_genes]
+        trait_prob = PROBS['trait'][num_genes][has_trait]
+        joint_prob *= gene_prob * trait_prob
+
+    return joint_prob
 
 
 def update(probabilities, one_gene, two_genes, have_trait, p):
@@ -198,7 +209,17 @@ def update(probabilities, one_gene, two_genes, have_trait, p):
     Which value for each distribution is updated depends on whether
     the person is in `have_gene` and `have_trait`, respectively.
     """
-    raise NotImplementedError
+    for person in probabilities.keys():
+        num_genes = 0
+        if person in one_gene:
+            num_genes = 1
+        elif person in two_genes:
+            num_genes = 2
+
+        has_trait = person in have_trait
+
+        probabilities[person]["gene"][num_genes] += p
+        probabilities[person]["trait"][has_trait] += p
 
 
 def normalize(probabilities):
@@ -206,7 +227,11 @@ def normalize(probabilities):
     Update `probabilities` such that each probability distribution
     is normalized (i.e., sums to 1, with relative proportions the same).
     """
-    raise NotImplementedError
+    for person in probabilities.keys():
+        for entry, dictionary in probabilities[person].items():
+            total = sum(list(val for val in dictionary.values()))
+            for key in dictionary.keys():
+                dictionary[key] = dictionary[key] / total
 
 
 if __name__ == "__main__":
