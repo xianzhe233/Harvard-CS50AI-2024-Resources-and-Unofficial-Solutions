@@ -11,10 +11,10 @@ def main():
     if len(sys.argv) != 2:
         sys.exit("Usage: python pagerank.py corpus")
     corpus = crawl(sys.argv[1])
-    ranks = sample_pagerank(corpus, DAMPING, SAMPLES)
-    print(f"PageRank Results from Sampling (n = {SAMPLES})")
-    for page in sorted(ranks):
-        print(f"  {page}: {ranks[page]:.4f}")
+    # ranks = sample_pagerank(corpus, DAMPING, SAMPLES)
+    # print(f"PageRank Results from Sampling (n = {SAMPLES})")
+    # for page in sorted(ranks):
+    #     print(f"  {page}: {ranks[page]:.4f}")
     ranks = iterate_pagerank(corpus, DAMPING)
     print(f"PageRank Results from Iteration")
     for page in sorted(ranks):
@@ -89,7 +89,7 @@ def sample_pagerank(corpus, damping_factor, n):
     PageRank values should sum to 1.
     """
     page_values = {page: 0 for page in corpus.keys()}
-    page = random.choice(page_values.keys())
+    page = random.choice(list(page_values.keys()))
 
     # randomly picking a starting page used 1 sample
     for _ in range(n - 1):
@@ -97,9 +97,9 @@ def sample_pagerank(corpus, damping_factor, n):
         transition_dict = transition_model(corpus, page, damping_factor)
         pages = transition_dict.keys()
         distribution = transition_dict.values()
-        page = random.choices(pages, distribution, k=1)[0]
+        page = random.choices(list(pages), list(distribution), k=1)[0]
 
-    sample_dict = {p: v / n for p, v in page_values}
+    sample_dict = {p: v / n for p, v in page_values.items()}
     return sample_dict
 
 
@@ -115,28 +115,30 @@ def iterate_pagerank(corpus, damping_factor, threshold=0.001):
 
     # Returns a set of all pages that link to page.
     def pages_link_to(page):
-        return set(p for p, pages in corpus.items() if p in pages)
+        return set(
+            p for p, pages in corpus.items() if page in pages or not pages)
 
-    # Updates PR(p), returns changed value.
+    # Updates PR(p), returns new pagerank and changed value.
     def pagerank_update(page):
         new_pagerank = (1 - damping_factor) / n
         for i in pages_link_to(page):
             numlinks = len(corpus[i])
-            numlinks = len(corpus) if numlinks == 0 else numlinks
+            numlinks = n if numlinks == 0 else numlinks
             new_pagerank += damping_factor * page_ranks[i] / numlinks
         diff = abs(new_pagerank - page_ranks[page])
-        pagerank_updates.update({page: new_pagerank})
-        return diff
+        return new_pagerank, diff
 
     # initialize page_rank of all pages
-    n = len(corpus)
+    n = len(corpus.keys())
     page_ranks = {page: 1 / n for page in corpus.keys()}
-    pagerank_updates = {}
+    pagerank_updates = page_ranks.copy()
 
     while True:
         max_diff = 0
         for p in corpus.keys():
-            max_diff = max(pagerank_update(p), max_diff)
+            pagerank, diff = pagerank_update(p)
+            max_diff = max(max_diff, diff)
+            pagerank_updates.update({p: pagerank})
         if max_diff <= threshold:
             break
         else:
