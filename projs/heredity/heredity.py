@@ -1,5 +1,7 @@
+from configparser import MissingSectionHeaderError
 import csv
 import itertools
+from re import I
 import sys
 
 PROBS = {
@@ -10,7 +12,6 @@ PROBS = {
         1: 0.03,
         0: 0.96
     },
-
     "trait": {
 
         # Probability of trait given two copies of gene
@@ -56,8 +57,7 @@ def main():
                 True: 0,
                 False: 0
             }
-        }
-        for person in people
+        } for person in people
     }
 
     # Loop over all sets of people who might have the trait
@@ -65,11 +65,9 @@ def main():
     for have_trait in powerset(names):
 
         # Check if current set of people violates known information
-        fails_evidence = any(
-            (people[person]["trait"] is not None and
-             people[person]["trait"] != (person in have_trait))
-            for person in names
-        )
+        fails_evidence = any((people[person]["trait"] is not None and
+                              people[person]["trait"] != (person in have_trait))
+                             for person in names)
         if fails_evidence:
             continue
 
@@ -107,9 +105,12 @@ def load_data(filename):
         for row in reader:
             name = row["name"]
             data[name] = {
-                "name": name,
-                "mother": row["mother"] or None,
-                "father": row["father"] or None,
+                "name":
+                    name,
+                "mother":
+                    row["mother"] or None,
+                "father":
+                    row["father"] or None,
                 "trait": (True if row["trait"] == "1" else
                           False if row["trait"] == "0" else None)
             }
@@ -123,8 +124,7 @@ def powerset(s):
     s = list(s)
     return [
         set(s) for s in itertools.chain.from_iterable(
-            itertools.combinations(s, r) for r in range(len(s) + 1)
-        )
+            itertools.combinations(s, r) for r in range(len(s) + 1))
     ]
 
 
@@ -139,7 +139,56 @@ def joint_probability(people, one_gene, two_genes, have_trait):
         * everyone in set `have_trait` has the trait, and
         * everyone not in set` have_trait` does not have the trait.
     """
-    raise NotImplementedError
+
+    # Calculates person's genes distribution.
+    def calc_genes(person):
+
+        # Returns gene_factors' distribution with given gene pattern.
+        def gene_factor(genes):
+            factor = {0: 0, 1: 0}
+            for num, prob in genes.items():
+                factor[0] += (1 - num / 2) * prob * (
+                    1 - PROBS['mutation']) + num / 2 * prob * PROBS['mutation']
+                factor[1] += num / 2 * prob * (1 - PROBS['mutation']) + (
+                    1 - num / 2) * prob * PROBS['mutation']
+            return factor
+
+        if not people[person]['mother']:
+            return PROBS["gene"]  # if no parents, just use general distribution
+        else:
+            genes = {0: 0, 1: 0, 2: 0}
+            f_gene = calc_genes(people[person]['father'])
+            m_gene = calc_genes(people[person]['mother'])
+            f_factor, m_factor = gene_factor(f_gene), gene_factor(m_gene)
+            for num1, prob1 in f_factor.items():
+                for num2, prob2 in m_factor.items():
+                    genes[num1 + num2] += prob1 * prob2
+            return genes
+
+    # Calculates traits' distribution with given gene distribution.
+    def calc_traits(genes):
+        traits = {True: 0, False: 0}
+        for copy, prob in genes.items():
+            traits[True] += prob * PROBS['trait'][copy]
+        return traits
+
+    joint = {person: {"gene": {}, "trait": {}} for person in people}
+    for person in people.keys():
+        genes = calc_genes(person)
+        traits = calc_traits(genes)
+        if person in one_gene:
+            joint[person]['gene'].update({1: genes[1]})
+        elif person in two_genes:
+            joint[person]['gene'].update({2: genes[2]})
+        else:
+            joint[person]['gene'].update({0: genes[0]})
+
+        if person in have_trait:
+            joint[person]['trait'].update({True: traits[True]})
+        else:
+            joint[person]['trait'].update({False: traits[False]})
+
+    return joint
 
 
 def update(probabilities, one_gene, two_genes, have_trait, p):
