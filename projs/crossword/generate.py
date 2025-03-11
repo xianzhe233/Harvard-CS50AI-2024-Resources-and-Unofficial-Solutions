@@ -147,6 +147,7 @@ class CrosswordCreator():
                 for neighbor in self.crossword.neighbors(var):
                     arcs.append((var, neighbor))
 
+        # queue for revising arcs
         q = Queue()
         for pair in arcs:
             q.put(pair)
@@ -156,6 +157,8 @@ class CrosswordCreator():
             if self.revise(x, y):
                 if not self.domains[x]:
                     return False
+
+                # add all arcs with possible changes
                 for z in self.crossword.neighbors(x) - set([y]):
                     q.put((z, x))
 
@@ -236,6 +239,7 @@ class CrosswordCreator():
             var for var in self.crossword.variables if var not in assignment
         ]
 
+        # keep track of least remaining variable
         min_remaining = float('inf')
         best_var = None
 
@@ -252,6 +256,9 @@ class CrosswordCreator():
         return best_var
 
     def inference(self, assignment):
+        """
+        Produce new assignment values with current assignment.
+        """
         inferences = {}
         for var in self.crossword.variables:
             if var not in assignment:
@@ -276,9 +283,11 @@ class CrosswordCreator():
 
         If no assignment is possible, return None.
         """
+        # if assignment is complete, then it is a valid solution
         if self.assignment_complete(assignment):
             return assignment
 
+        # choose a new variable to assign
         var = self.select_unassigned_variable(assignment)
 
         for value in self.domains[var]:
