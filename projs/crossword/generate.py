@@ -1,4 +1,3 @@
-from asyncio import WriteTransport
 import sys
 
 from crossword import *
@@ -252,6 +251,22 @@ class CrosswordCreator():
 
         return best_var
 
+    def inference(self, assignment):
+        inferences = {}
+        for var in self.crossword.variables:
+            if var not in assignment:
+                possible_values = []
+                for value in self.domains[var]:
+                    new_assignment = assignment.copy()
+                    new_assignment[var] = value
+                    if self.consistent(new_assignment):
+                        possible_values.append(value)
+
+                # if there's only one single possible value, add the pair into inferences dict
+                if len(possible_values) == 1:
+                    inferences[var] = possible_values[0]
+        return inferences
+
     def backtrack(self, assignment):
         """
         Using Backtracking Search, take as input a partial assignment for the
@@ -270,9 +285,15 @@ class CrosswordCreator():
             new_assignment = assignment.copy()
             new_assignment[var] = value
             if self.consistent(new_assignment):
-                result = self.backtrack(new_assignment)
-                if result != None:
-                    return result
+                # produce inferences with new assignment value
+                inferences = self.inference(new_assignment)
+                for inferred_var, inferred_value in inferences.items():
+                    new_assignment[inferred_var] = inferred_value
+
+                if self.consistent(new_assignment):
+                    result = self.backtrack(new_assignment)
+                    if result is not None:
+                        return result
 
         # None for failure
         return None
