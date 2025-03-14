@@ -15,9 +15,9 @@ def main():
 
     # Load data from spreadsheet and split into train and test sets
     evidence, labels = load_data(sys.argv[1])
-    X_train, X_test, y_train, y_test = train_test_split(
-        evidence, labels, test_size=TEST_SIZE
-    )
+    X_train, X_test, y_train, y_test = train_test_split(evidence,
+                                                        labels,
+                                                        test_size=TEST_SIZE)
 
     # Train model and make predictions
     model = train_model(X_train, y_train)
@@ -59,7 +59,54 @@ def load_data(filename):
     labels should be the corresponding list of labels, where each label
     is 1 if Revenue is true, and 0 otherwise.
     """
-    raise NotImplementedError
+    month_map = {
+        "Jan": 0,
+        "Feb": 1,
+        "Mar": 2,
+        "Apr": 3,
+        "May": 4,
+        "June": 5,
+        "Jul": 6,
+        "Aug": 7,
+        "Sep": 8,
+        "Oct": 9,
+        "Nov": 10,
+        "Dec": 11
+    }
+
+    evidence = []
+    labels = []
+
+    with open(filename, newline='') as file:
+        reader = csv.reader(file)
+        header = next(reader)
+
+        for row in reader:
+            evidence.append([
+                int(row[0]),  # Administrative -> int
+                float(row[1]),  # Administrative_Duration -> float
+                int(row[2]),  # Informational -> int
+                float(row[3]),  # Informational_Duration -> float
+                int(row[4]),  # ProductRelated -> int
+                float(row[5]),  # ProductRelated_Duration -> float
+                float(row[6]),  # BounceRates -> float
+                float(row[7]),  # ExitRates -> float
+                float(row[8]),  # PageValues -> float
+                float(row[9]),  # SpecialDay -> float
+                month_map.get(row[10]),  # Month -> 0 ~ 11
+                int(row[11]),  # OperatingSystems -> int
+                int(row[12]),  # Browser -> int
+                int(row[13]),  # Region -> int
+                int(row[14]),  # TrafficType -> int
+                1 if row[15] == 'Returning_Visitor' else
+                0,  # VisitorType -> 1 for returning, 0 for others
+                1 if row[16] == 'TRUE' else
+                0  # Weekend -> 1 for weekend, 0 for not weekend
+            ])
+
+            labels.append(1 if row[-1] == 'TRUE' else 0)
+
+        return (evidence, labels)
 
 
 def train_model(evidence, labels):
@@ -67,7 +114,9 @@ def train_model(evidence, labels):
     Given a list of evidence lists and a list of labels, return a
     fitted k-nearest neighbor model (k=1) trained on the data.
     """
-    raise NotImplementedError
+    model = KNeighborsClassifier(1)
+    model.fit(evidence, labels)
+    return model
 
 
 def evaluate(labels, predictions):
@@ -85,7 +134,25 @@ def evaluate(labels, predictions):
     representing the "true negative rate": the proportion of
     actual negative labels that were accurately identified.
     """
-    raise NotImplementedError
+
+    def check(label, prediction):
+        return 1 if label == prediction else 0
+
+    pos_total, neg_total = 0, 0
+    pos_cnt, neg_cnt = 0, 0
+
+    for label, prediction in zip(labels, predictions):
+        if label == 1:
+            pos_total += 1
+            pos_cnt += check(label, prediction)
+        else:
+            neg_total += 1
+            neg_cnt += check(label, prediction)
+
+    sensitivity = pos_cnt / pos_total
+    specificity = neg_cnt / neg_total
+
+    return (sensitivity, specificity)
 
 
 if __name__ == "__main__":
