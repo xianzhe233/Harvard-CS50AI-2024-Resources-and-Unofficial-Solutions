@@ -83,14 +83,16 @@ def get_model():
     """
     model = tf.keras.models.Sequential([
         # convolutional layer
-        tf.keras.layers.Conv2D(32, (3, 3),
+        tf.keras.layers.Conv2D(64, (3, 3),
                                activation="relu",
                                input_shape=(IMG_WIDTH, IMG_HEIGHT, 3)),
         # max_pooling layer
-        tf.keras.layers.MaxPooling2D(pool_size=(2, 2)),
+        tf.keras.layers.MaxPooling2D(pool_size=(3, 3)),
         tf.keras.layers.Flatten(),
 
         # hidden layer
+        tf.keras.layers.Dense(256, activation="relu"),
+        tf.keras.layers.Dense(128, activation="relu"),
         tf.keras.layers.Dense(128, activation="relu"),
         tf.keras.layers.Dropout(0),
 
