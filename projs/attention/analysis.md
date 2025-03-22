@@ -1,18 +1,12 @@
 # Analysis
 
-## Layer TODO, Head TODO
+## Layer 2, Head 2
 
-TODO
+![](Attention_Layer2_Head2.png)
 
-Example Sentences:
-- TODO
-- TODO
-
-## Layer TODO, Head TODO
-
-TODO
+Every word pays attention to the word next to it, except [SED] pays attention to [CLS]
 
 Example Sentences:
-- TODO
-- TODO
-
+- Then I picked up a book from the table.
+- Then I picked up a bottle from the table.
+- Then I picked up a plate from the table.
